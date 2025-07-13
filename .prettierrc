@@ -1,0 +1,12 @@
+{
+  "importOrder": ["^@app/(.*)$", "^[./]"],
+  "importOrderSeparation": true,
+  "importOrderSortSpecifiers": true,
+  "plugins": [
+    "@trivago/prettier-plugin-sort-imports",
+    "prettier-plugin-packagejson",
+    "prettier-plugin-svelte",
+    "prettier-plugin-tailwindcss"
+  ],
+  "overrides": [{ "files": "*.svelte", "options": { "parser": "svelte" } }]
+}

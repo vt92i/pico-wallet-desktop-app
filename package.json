@@ -1,0 +1,51 @@
+{
+  "name": "pico-wallet",
+  "version": "0.1.0",
+  "description": "",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+    "dev": "vite dev",
+    "format": "prettier --write ./src/ \"package.json\"",
+    "lint": "eslint ./src/ --ext ts,svelte --max-warnings 0 --fix",
+    "preview": "vite preview",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@lucide/svelte": "^0.513.0",
+    "@tailwindcss/vite": "^4.1.11",
+    "@tauri-apps/api": "^2.6.0",
+    "@tauri-apps/plugin-opener": "^2.4.0",
+    "axios": "^1.10.0",
+    "tailwindcss": "^4.1.11"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.29.0",
+    "@skeletonlabs/skeleton": "^3.1.3",
+    "@skeletonlabs/skeleton-svelte": "^1.2.3",
+    "@sveltejs/adapter-static": "^3.0.8",
+    "@sveltejs/kit": "^2.22.2",
+    "@sveltejs/vite-plugin-svelte": "^5.1.0",
+    "@tailwindcss/forms": "^0.5.10",
+    "@tauri-apps/cli": "^2.6.1",
+    "@trivago/prettier-plugin-sort-imports": "^5.2.2",
+    "eslint": "^9.29.0",
+    "eslint-config-prettier": "^10.1.5",
+    "eslint-plugin-prettier": "^5.5.1",
+    "eslint-plugin-svelte": "^3.10.1",
+    "globals": "^16.2.0",
+    "prettier": "^3.6.2",
+    "prettier-plugin-packagejson": "^2.5.16",
+    "prettier-plugin-svelte": "^3.4.0",
+    "prettier-plugin-tailwindcss": "^0.6.14",
+    "svelte": "^5.34.8",
+    "svelte-check": "^4.2.2",
+    "typescript": "~5.6.3",
+    "typescript-eslint": "^8.35.0",
+    "typescript-svelte-plugin": "^0.3.48",
+    "vite": "^6.3.5"
+  }
+}
