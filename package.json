@@ -11,9 +11,9 @@
     "dev": "vite dev",
     "format": "prettier --write ./src/ \"package.json\"",
     "lint": "eslint ./src/ --ext ts,svelte --max-warnings 0 --fix",
+    "prepare": "husky",
     "preview": "vite preview",
-    "tauri": "tauri",
-    "prepare": "husky"
+    "tauri": "tauri"
   },
   "dependencies": {
     "@lucide/svelte": "^0.513.0",
@@ -21,6 +21,7 @@
     "@tauri-apps/api": "^2.6.0",
     "@tauri-apps/plugin-opener": "^2.4.0",
     "axios": "^1.10.0",
+    "qrcode": "^1.5.4",
     "tailwindcss": "^4.1.11"
   },
   "devDependencies": {
@@ -35,6 +36,7 @@
     "@tailwindcss/forms": "^0.5.10",
     "@tauri-apps/cli": "^2.6.1",
     "@trivago/prettier-plugin-sort-imports": "^5.2.2",
+    "@types/qrcode": "^1.5.5",
     "eslint": "^9.29.0",
     "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-prettier": "^5.5.1",

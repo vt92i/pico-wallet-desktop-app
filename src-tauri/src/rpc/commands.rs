@@ -126,6 +126,36 @@ impl Command for InitiliazeWalletCommand {
     }
 }
 
+pub struct RestoreWalletCommand {
+    pub mnemonic: Vec<String>,
+}
+
+impl Command for RestoreWalletCommand {
+    type Output = ();
+    type Error = CommandError;
+
+    fn cmd_id(&self) -> u8 {
+        0xA1
+    }
+
+    fn encode(&self) -> Vec<u8> {
+        self.mnemonic
+            .join(" ")
+            .into_bytes()
+            .into_iter()
+            .chain(std::iter::once(0))
+            .collect()
+    }
+
+    fn decode(&self, response: Response) -> Result<Self::Output, Self::Error> {
+        if response.status != 0x9000 {
+            return Err(CommandError::ExecutionError);
+        }
+
+        Ok(())
+    }
+}
+
 pub struct ResetWalletCommand {}
 
 impl Command for ResetWalletCommand {
@@ -133,7 +163,7 @@ impl Command for ResetWalletCommand {
     type Error = CommandError;
 
     fn cmd_id(&self) -> u8 {
-        0xA1
+        0xA2
     }
 
     fn encode(&self) -> Vec<u8> {
@@ -156,7 +186,7 @@ impl Command for GetWalletStatusCommand {
     type Error = CommandError;
 
     fn cmd_id(&self) -> u8 {
-        0xA2
+        0xA3
     }
 
     fn encode(&self) -> Vec<u8> {
@@ -181,7 +211,7 @@ impl Command for GetAddressCommand {
     type Error = CommandError;
 
     fn cmd_id(&self) -> u8 {
-        0xA3
+        0xA4
     }
 
     fn encode(&self) -> Vec<u8> {
@@ -212,7 +242,7 @@ impl Command for GetPublicKeyCommand {
     type Error = CommandError;
 
     fn cmd_id(&self) -> u8 {
-        0xA4
+        0xA5
     }
 
     fn encode(&self) -> Vec<u8> {
@@ -238,7 +268,7 @@ impl Command for SignTransactionCommand {
     type Error = CommandError;
 
     fn cmd_id(&self) -> u8 {
-        0xA5
+        0xA6
     }
 
     fn encode(&self) -> Vec<u8> {

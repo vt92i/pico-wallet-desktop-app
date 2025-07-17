@@ -129,6 +129,20 @@ fn initialize_wallet(state: State<'_, Mutex<AppState>>) -> Result<Vec<String>, S
 }
 
 #[tauri::command]
+fn restore_wallet(state: State<'_, Mutex<AppState>>, mnemonic: Vec<String>) -> Result<(), String> {
+    let mut state = state.lock().unwrap();
+
+    let rpc = match state.rpc.as_mut() {
+        Some(rpc) => rpc,
+        None => return Err("not connected to a device".to_string()),
+    };
+
+    let command = rpc::commands::RestoreWalletCommand { mnemonic };
+
+    rpc.send_command(&command).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 fn get_wallet_status(state: State<'_, Mutex<AppState>>) -> Result<bool, String> {
     let mut state = state.lock().unwrap();
 
@@ -277,6 +291,7 @@ pub fn run() {
             connect,
             disconnect,
             initialize_wallet,
+            restore_wallet,
             reset_wallet,
             get_wallet_status,
             get_address,

@@ -2,6 +2,7 @@
   import { AppBar } from "@skeletonlabs/skeleton-svelte";
   import { Modal } from "@skeletonlabs/skeleton-svelte";
   import { invoke } from "@tauri-apps/api/core";
+  import QRCode from "qrcode";
 
   import { broadcastTransaction } from "@app/api";
   import { devicesStore as devices, walletStore as wallet } from "@app/stores";
@@ -13,10 +14,14 @@
 
   let modalAddressesState = $state(false);
   let modalSendState = $state(false);
+  let modalReceiveState = $state(false);
+  let modalRestoreWalletState = $state(false);
 
   let mnemonic = $state<string[]>([]);
   let balance = $state(0);
   let transactions = $state<Transaction[]>([]);
+
+  let currentAddressQR = $state<string>("");
 
   const socket = new WebSocket("wss://mempool.space/testnet4/api/v1/ws");
   socket.addEventListener("message", () => {
@@ -93,7 +98,6 @@
                                 disabled={address === $wallet.currentAddress}
                                 onclick={async () => {
                                   modalAddressesState = false;
-                                  // wallet.setCurrentAddress("tb1qjevzzh4mldaa0d5nxzm7y3e4cwrtvdpn97su0n");
                                   wallet.setCurrentAddress(address);
                                   socket.send(
                                     JSON.stringify({
@@ -107,6 +111,12 @@
 
                                   balance = await wallet.getBalance($wallet.currentAddress);
                                   transactions = await wallet.getTransactions($wallet.currentAddress);
+                                  currentAddressQR = await QRCode.toDataURL(address, {
+                                    errorCorrectionLevel: "M",
+                                    type: "image/png",
+                                    margin: 1,
+                                    width: 400,
+                                  });
                                 }}>Set Current Address</button
                               >
                             </td>
@@ -218,7 +228,7 @@
                 } catch (error) {
                   toaster.error({
                     title: "Transaction Creation Failed",
-                    description: `${error instanceof Error ? error.message : "Unknown error"}`,
+                    description: error,
                   });
                   return;
                 }
@@ -261,10 +271,29 @@
 
         <Modal
           backdropClasses="backdrop-blur-sm"
+          closeOnInteractOutside={false}
+          contentBase="card bg-surface-100-900 p-4 space-y-4 shadow-xl max-w-screen-sm"
+          onOpenChange={(e) => (modalReceiveState = e.open)}
+          open={modalReceiveState}
+          triggerBase="btn preset-tonal"
+        >
+          {#snippet content()}
+            <header class="flex justify-between">
+              <h2 class="text-2xl font-semibold">Receive Bitcoin</h2>
+            </header>
+            <div class="flex items-center justify-center">
+              <img alt={$wallet.currentAddress} src={currentAddressQR} />
+            </div>
+            <span class="text-center text-lg font-semibold">{$wallet.currentAddress}</span>
+          {/snippet}
+        </Modal>
+
+        <Modal
+          backdropClasses="backdrop-blur-sm"
           closeOnEscape={false}
           closeOnInteractOutside={false}
           contentBase="card bg-surface-100-900 p-4 space-y-4 shadow-xl max-w-screen-sm"
-          open={mnemonic.length > 0}
+          open={mnemonic.length === 24}
           triggerBase="btn preset-tonal"
         >
           {#snippet content()}
@@ -297,7 +326,9 @@
                 disabled={balance <= 0}
                 onclick={() => (modalSendState = true)}>Send</button
               >
-              <button class="btn btn-sm preset-filled-primary-500">Receive</button>
+              <button class="btn btn-sm preset-filled-primary-500" onclick={() => (modalReceiveState = true)}
+                >Receive</button
+              >
             </div>
             <div class="flex w-full max-w-5xl justify-center gap-2">
               <span class="text-lg font-semibold">Balance: {satoshiToBtc(balance)} BTC</span>
@@ -316,7 +347,7 @@
                 } catch (error) {
                   toaster.error({
                     title: "Reset Failed",
-                    description: `${error instanceof Error ? error.message : "Unknown error"}`,
+                    description: error,
                   });
                 }
               }}>Reset Wallet</button
@@ -333,7 +364,7 @@
                 } catch (error) {
                   toaster.error({
                     title: "Disconnection Failed",
-                    description: `${error instanceof Error ? error.message : "Unknown error"}`,
+                    description: error,
                   });
                 }
               }}>Disconnect</button
@@ -426,18 +457,64 @@
             }}>Initialize Wallet</button
           >
 
-          <button
-            class="btn btn-sm preset-filled"
-            onclick={async () => {
-              mnemonic = await wallet.initialize();
+          <Modal
+            backdropClasses="backdrop-blur-sm"
+            closeOnInteractOutside={false}
+            contentBase="card bg-surface-100-900 p-4 space-y-4 shadow-xl max-w-screen-sm"
+            onOpenChange={(e) => (modalRestoreWalletState = e.open)}
+            open={modalRestoreWalletState}
+            triggerBase="btn preset-tonal"
+          >
+            {#snippet content()}
+              <header class="flex justify-between">
+                <h2 class="text-2xl font-semibold">Mnemonic Phrase</h2>
+              </header>
+              <article class="">
+                <div class="mt-4">
+                  <textarea id="mnemonic-restore" class="textarea preset-filled-surface-100-900 h-32 w-full resize-none"
+                  ></textarea>
+                </div>
+              </article>
+              <footer class="flex justify-end gap-4">
+                <button
+                  class="btn btn-sm preset-filled-primary-500 mt-4"
+                  onclick={async () => {
+                    const textarea = document.getElementById("mnemonic-restore") as HTMLTextAreaElement;
+                    const words = textarea.value.trim().split(/\s+/);
+                    if (words.length !== 24) {
+                      toaster.error({
+                        title: "Invalid Mnemonic",
+                        description: "Please enter a valid 24-word mnemonic phrase.",
+                      });
+                      return;
+                    }
 
-              toaster.success({
-                title: "Wallet Initialized",
-                description: `${mnemonic.length} words mnemonic generated. `,
-              });
+                    try {
+                      await invoke("restore_wallet", { mnemonic: words });
 
-              await wallet.getStatus();
-            }}>Restore Wallet</button
+                      modalRestoreWalletState = false;
+
+                      toaster.success({
+                        title: "Wallet Restored",
+                        description: "Your wallet has been restored successfully.",
+                      });
+                    } catch (error) {
+                      toaster.error({
+                        title: "Restore Failed",
+                        description: error,
+                      });
+                      return;
+                    }
+
+                    await wallet.getStatus();
+                  }}>Restore</button
+                >
+              </footer>
+            {/snippet}
+          </Modal>
+
+          <button class="btn btn-sm preset-filled" onclick={() => (modalRestoreWalletState = true)}
+            >Restore Wallet</button
           >
         </div>
       {/if}
@@ -457,7 +534,7 @@
             } catch (error) {
               toaster.error({
                 title: "Connection Failed",
-                description: `${error instanceof Error ? error.message : "Unknown error"}`,
+                description: error,
               });
             }
 
