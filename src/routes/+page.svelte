@@ -298,11 +298,11 @@
                 <input
                   name="amount"
                   class="input"
-                  defaultValue="0.00000546"
-                  min="0.00000546"
+                  defaultValue="0.00001"
+                  min="0.00001"
                   placeholder="Amount in BTC"
                   required
-                  step="0.00000001"
+                  step="0.00001"
                   type="number"
                 />
               </label>
