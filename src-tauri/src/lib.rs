@@ -115,7 +115,7 @@ fn reset_wallet(state: State<'_, Mutex<AppState>>) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn initialize_wallet(state: State<'_, Mutex<AppState>>) -> Result<Vec<String>, String> {
+fn unlock_wallet(state: State<'_, Mutex<AppState>>, password: String) -> Result<(), String> {
     let mut state = state.lock().unwrap();
 
     let rpc = match state.rpc.as_mut() {
@@ -123,13 +123,16 @@ fn initialize_wallet(state: State<'_, Mutex<AppState>>) -> Result<Vec<String>, S
         None => return Err("not connected to a device".to_string()),
     };
 
-    let command = rpc::commands::InitiliazeWalletCommand {};
+    let command = rpc::commands::UnlockWalletCommand { password };
 
     rpc.send_command(&command).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn restore_wallet(state: State<'_, Mutex<AppState>>, mnemonic: Vec<String>) -> Result<(), String> {
+fn initialize_wallet(
+    state: State<'_, Mutex<AppState>>,
+    password: String,
+) -> Result<Vec<String>, String> {
     let mut state = state.lock().unwrap();
 
     let rpc = match state.rpc.as_mut() {
@@ -137,7 +140,25 @@ fn restore_wallet(state: State<'_, Mutex<AppState>>, mnemonic: Vec<String>) -> R
         None => return Err("not connected to a device".to_string()),
     };
 
-    let command = rpc::commands::RestoreWalletCommand { mnemonic };
+    let command = rpc::commands::InitiliazeWalletCommand { password };
+
+    rpc.send_command(&command).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn restore_wallet(
+    state: State<'_, Mutex<AppState>>,
+    mnemonic: Vec<String>,
+    password: String,
+) -> Result<(), String> {
+    let mut state = state.lock().unwrap();
+
+    let rpc = match state.rpc.as_mut() {
+        Some(rpc) => rpc,
+        None => return Err("not connected to a device".to_string()),
+    };
+
+    let command = rpc::commands::RestoreWalletCommand { mnemonic, password };
 
     rpc.send_command(&command).map_err(|e| e.to_string())
 }
@@ -290,6 +311,7 @@ pub fn run() {
             scan_devices,
             connect,
             disconnect,
+            unlock_wallet,
             initialize_wallet,
             restore_wallet,
             reset_wallet,

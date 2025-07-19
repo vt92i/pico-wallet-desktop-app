@@ -16,12 +16,15 @@
   let modalSendState = $state(false);
   let modalReceiveState = $state(false);
   let modalRestoreWalletState = $state(false);
+  let modalInitWalletState = $state(false);
 
   let mnemonic = $state<string[]>([]);
   let balance = $state(0);
   let transactions = $state<Transaction[]>([]);
 
   let currentAddressQR = $state<string>("");
+
+  let isUnlocked = $state(false);
 
   const socket = new WebSocket("wss://mempool.space/testnet4/api/v1/ws");
   socket.addEventListener("message", () => {
@@ -133,6 +136,58 @@
             <span class="badge preset-filled-warning-500">TestNet4</span>
           {/snippet}
         </AppBar>
+
+        <Modal
+          backdropClasses="backdrop-blur-sm"
+          closeOnEscape={false}
+          closeOnInteractOutside={false}
+          contentBase="card bg-surface-100-900 p-4 space-y-4 shadow-xl max-w-screen-sm"
+          open={!isUnlocked}
+          triggerBase="btn preset-tonal"
+        >
+          {#snippet content()}
+            <header class="flex justify-between">
+              <h2 class="text-2xl font-semibold">Unlock Wallet</h2>
+            </header>
+            <form
+              class="w-full space-y-4"
+              onsubmit={async (e) => {
+                const formEvent = e as SubmitEvent;
+                formEvent.preventDefault();
+
+                const target = formEvent.target as HTMLFormElement;
+                const formData = new FormData(target);
+
+                const password = formData.get("password") as string;
+
+                try {
+                  await invoke("unlock_wallet", { password });
+                  isUnlocked = true;
+
+                  toaster.success({
+                    title: "Wallet Unlocked",
+                    description: "You can now use your wallet.",
+                  });
+
+                  await wallet.getStatus();
+                } catch (error) {
+                  toaster.error({
+                    title: "Unlock Failed",
+                    description: "Wallet is resetted, please reinitialize.",
+                  });
+                  // await wallet.reset();
+                  await wallet.getStatus();
+                }
+              }}
+            >
+              <label class="label">
+                <span class="label-text">Password</span>
+                <input name="password" class="input" placeholder="Password" required type="text" />
+              </label>
+              <button class="btn btn-sm preset-filled-primary-500 w-full" type="submit">Unlock</button>
+            </form>
+          {/snippet}
+        </Modal>
 
         <Modal
           backdropClasses="backdrop-blur-sm"
@@ -340,6 +395,7 @@
               onclick={async () => {
                 try {
                   await wallet.reset();
+                  isUnlocked = false;
                   toaster.success({
                     title: "Wallet Reset",
                     description: "The wallet has been reset successfully.",
@@ -357,6 +413,7 @@
               onclick={async () => {
                 try {
                   await wallet.disconnect();
+                  isUnlocked = false;
                   toaster.success({
                     title: "Wallet Disconnected",
                     description: "The wallet has been disconnected successfully.",
@@ -443,18 +500,79 @@
         {/if}
       {:else}
         <div class="flex min-h-screen w-full flex-row items-center justify-center gap-2 px-64">
+          <Modal
+            backdropClasses="backdrop-blur-sm"
+            closeOnInteractOutside={false}
+            contentBase="card bg-surface-100-900 p-4 space-y-4 shadow-xl max-w-screen-sm"
+            onOpenChange={(e) => (modalInitWalletState = e.open)}
+            open={modalInitWalletState}
+            triggerBase="btn preset-tonal"
+          >
+            {#snippet content()}
+              <header class="flex justify-between">
+                <h2 class="text-2xl font-semibold">Initialize Wallet</h2>
+              </header>
+              <form
+                class="w-full space-y-4"
+                onsubmit={async (e) => {
+                  const formEvent = e as SubmitEvent;
+                  formEvent.preventDefault();
+
+                  const target = formEvent.target as HTMLFormElement;
+                  const formData = new FormData(target);
+
+                  const password = formData.get("password") as string;
+
+                  try {
+                    mnemonic = await wallet.initialize(password);
+
+                    modalInitWalletState = false;
+                    isUnlocked = true;
+
+                    toaster.success({
+                      title: "Wallet Initialized",
+                      description: `${mnemonic.length} words mnemonic generated. `,
+                    });
+
+                    await wallet.getStatus();
+                  } catch (error) {
+                    toaster.error({
+                      title: "Initialization Failed",
+                      description: error,
+                    });
+                  }
+                }}
+              >
+                <label class="label">
+                  <span class="label-text">Password</span>
+                  <input name="password" class="input" placeholder="Password" required type="text" />
+                </label>
+                <button class="btn btn-sm preset-filled-primary-500 w-full" type="submit">Initialize</button>
+              </form>
+            {/snippet}
+          </Modal>
+
           <button
-            class="btn btn-sm preset-filled"
+            class="btn btn-sm preset-filled-warning-500"
             onclick={async () => {
-              mnemonic = await wallet.initialize();
+              try {
+                await wallet.disconnect();
+                isUnlocked = false;
+                toaster.success({
+                  title: "Wallet Disconnected",
+                  description: "The wallet has been disconnected successfully.",
+                });
+              } catch (error) {
+                toaster.error({
+                  title: "Disconnection Failed",
+                  description: error,
+                });
+              }
+            }}>Disconnect</button
+          >
 
-              toaster.success({
-                title: "Wallet Initialized",
-                description: `${mnemonic.length} words mnemonic generated. `,
-              });
-
-              await wallet.getStatus();
-            }}>Initialize Wallet</button
+          <button class="btn btn-sm preset-filled" onclick={() => (modalInitWalletState = true)}
+            >Initialize Wallet</button
           >
 
           <Modal
@@ -471,8 +589,14 @@
               </header>
               <article class="">
                 <div class="mt-4">
-                  <textarea id="mnemonic-restore" class="textarea preset-filled-surface-100-900 h-32 w-full resize-none"
+                  <textarea
+                    id="mnemonic-restore"
+                    class="textarea preset-filled-surface-100-900 h-32 w-full resize-none"
+                    placeholder="24 words mnemonic"
                   ></textarea>
+                </div>
+                <div class="mt-4">
+                  <input name="password-restore" class="input" placeholder="Password" required type="text" />
                 </div>
               </article>
               <footer class="flex justify-end gap-4">
@@ -489,10 +613,22 @@
                       return;
                     }
 
+                    const passwordInput = document.querySelector('input[name="password-restore"]') as HTMLInputElement;
+                    const password = passwordInput.value.trim();
+
+                    if (!password) {
+                      toaster.error({
+                        title: "Password Required",
+                        description: "Please enter a password to restore your wallet.",
+                      });
+                      return;
+                    }
+
                     try {
-                      await invoke("restore_wallet", { mnemonic: words });
+                      await invoke("restore_wallet", { mnemonic: words, password });
 
                       modalRestoreWalletState = false;
+                      isUnlocked = true;
 
                       toaster.success({
                         title: "Wallet Restored",

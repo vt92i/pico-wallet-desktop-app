@@ -37,9 +37,9 @@ const createWalletStore = () => {
     set(initialState);
   };
 
-  const _initialize = async () => {
+  const _initialize = async (password: string) => {
     try {
-      const mnemonic = (await initializeWallet())[0].split(" ");
+      const mnemonic = (await initializeWallet(password))[0].split(" ");
 
       update((state) => ({
         ...state,

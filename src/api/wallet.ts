@@ -7,7 +7,7 @@ const scanDevices = (): Promise<Device[]> => invoke("scan_devices");
 const connect = (port: string): Promise<boolean> => invoke("connect", { port });
 const disconnect = (): Promise<boolean> => invoke("disconnect");
 
-const initializeWallet = (): Promise<string[]> => invoke("initialize_wallet");
+const initializeWallet = (password: string): Promise<string[]> => invoke("initialize_wallet", { password });
 const resetWallet = (): Promise<void> => invoke("reset_wallet");
 
 const getWalletStatus = (): Promise<boolean> => invoke("get_wallet_status");

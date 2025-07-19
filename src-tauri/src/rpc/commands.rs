@@ -98,7 +98,39 @@ impl Command for HashSHA256Command {
     }
 }
 
-pub struct InitiliazeWalletCommand {}
+pub struct UnlockWalletCommand {
+    pub password: String,
+}
+
+impl Command for UnlockWalletCommand {
+    type Output = ();
+    type Error = CommandError;
+
+    fn cmd_id(&self) -> u8 {
+        0xA7
+    }
+
+    fn encode(&self) -> Vec<u8> {
+        self.password
+            .clone()
+            .into_bytes()
+            .into_iter()
+            .chain(std::iter::once(0))
+            .collect()
+    }
+
+    fn decode(&self, response: Response) -> Result<Self::Output, Self::Error> {
+        if response.status != 0x9000 {
+            return Err(CommandError::ExecutionError);
+        }
+
+        Ok(())
+    }
+}
+
+pub struct InitiliazeWalletCommand {
+    pub password: String,
+}
 
 impl Command for InitiliazeWalletCommand {
     type Output = Vec<String>;
@@ -109,7 +141,12 @@ impl Command for InitiliazeWalletCommand {
     }
 
     fn encode(&self) -> Vec<u8> {
-        vec![]
+        self.password
+            .clone()
+            .into_bytes()
+            .into_iter()
+            .chain(std::iter::once(0))
+            .collect()
     }
 
     fn decode(&self, response: Response) -> Result<Self::Output, Self::Error> {
@@ -128,6 +165,7 @@ impl Command for InitiliazeWalletCommand {
 
 pub struct RestoreWalletCommand {
     pub mnemonic: Vec<String>,
+    pub password: String,
 }
 
 impl Command for RestoreWalletCommand {
@@ -139,12 +177,18 @@ impl Command for RestoreWalletCommand {
     }
 
     fn encode(&self) -> Vec<u8> {
-        self.mnemonic
-            .join(" ")
-            .into_bytes()
-            .into_iter()
-            .chain(std::iter::once(0))
-            .collect()
+        // self.mnemonic
+        //     .join(" ")
+        //     .into_bytes()
+        //     .into_iter()
+        //     .chain(std::iter::once(0))
+        //     .collect()
+
+        let mut data = self.mnemonic.join(" ").into_bytes();
+        data.push(0x20);
+        data.extend_from_slice(self.password.as_bytes());
+        data.push(0); // Null terminator
+        data
     }
 
     fn decode(&self, response: Response) -> Result<Self::Output, Self::Error> {
